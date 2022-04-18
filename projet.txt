@@ -1,0 +1,957 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+//data types :
+typedef struct Date
+{
+    int jour;
+    int mois;
+    int anne;
+} date;
+
+typedef struct Voiture
+{
+    int idVoiture;
+    char marque[15];
+    char nomVoiture[15];
+    char couleur[7];
+    int nbplaces;
+    int prixJour;
+    char EnLocation[4];
+} voiture;
+
+typedef struct Client
+{
+    int idClient;
+    char nom[20];
+    char prenom[20];
+    int cin;
+    char adresse[15];
+    char telephone[11];
+}client;
+
+typedef struct contratLocation
+{
+    int numContrat;
+    int idVoiture;
+    int idClient;
+    date debut;
+    date fin;
+    int cout;
+} contrat;
+
+//data structures :
+typedef struct nodeV
+{
+    voiture data;
+    struct nodeV* next;
+} nodeV;
+typedef struct nodeC
+{
+    client data;
+    struct nodeC* next;
+} nodeC;
+typedef struct nodeT
+{
+    contrat data;
+    struct nodeT* next;
+} nodeT;
+
+
+// new code for date
+// To store number of days in
+// all months from January to Dec.
+const int monthDays[12]
+    = { 31, 28, 31, 30, 31, 30,
+       31, 31, 30, 31, 30, 31 };
+
+// This function counts number of
+// leap years before the given date
+int countLeapYears(date d)
+{
+    int years = d.anne;
+
+    // Check if the current year needs to be
+    //  considered for the count of leap years
+    // or not
+    if (d.mois <= 2)
+        years--;
+
+    // An year is a leap year if it
+    // is a multiple of 4,
+    // multiple of 400 and not a
+     // multiple of 100.
+    return years / 4
+           - years / 100
+           + years / 400;
+}
+
+// This function returns number of
+// days between two given dates
+int getDifference(date dt1, date dt2)
+{
+    // COUNT TOTAL NUMBER OF DAYS
+    // BEFORE FIRST DATE 'dt1'
+
+    // initialize count using years and day
+    long int n1 = dt1.anne * 365 + dt1.jour;
+
+    // Add days for months in given date
+    int i;
+    for (i=0; i < dt1.mois - 1; i++)
+        n1 += monthDays[i];
+
+    // Since every leap year is of 366 days,
+    // Add a day for every leap year
+    n1 += countLeapYears(dt1);
+
+    // SIMILARLY, COUNT TOTAL NUMBER OF
+    // DAYS BEFORE 'dt2'
+
+    long int n2 = dt2.anne * 365 + dt2.jour;
+    for (i = 0; i < dt2.mois - 1; i++)
+        n2 += monthDays[i];
+    n2 += countLeapYears(dt2);
+
+    // return difference between two counts
+    return (n2 - n1);
+}
+
+
+//linked list voiture
+void ajouterVoitureQueu(nodeV** pv,voiture* v){
+    nodeV* n=(nodeV*)malloc(sizeof(nodeV));
+    n->data.idVoiture=v->idVoiture;
+    strcpy(n->data.marque,v->marque);
+    strcpy(n->data.nomVoiture,v->nomVoiture);
+    strcpy(n->data.couleur,v->couleur);
+    n->data.nbplaces=v->nbplaces;
+    n->data.prixJour=v->prixJour;
+    strcpy(n->data.EnLocation,v->EnLocation);
+    n->next=0;
+    if((*pv)==0){
+        (*pv)=n;
+    }else{
+        nodeV* p=(*pv);
+        while(p->next!=0) p=p->next;
+        p->next=n;
+    }
+}
+void suprimerListVoiture(nodeV* pv){
+    while(pv!=NULL){
+        nodeV* p = pv->next;
+        free(pv);
+        pv=p;
+    }
+}
+nodeV* makeLinkedListVoiture(){
+    nodeV* n=0;
+    FILE* f=fopen("voitures.txt","r");
+    voiture vt;
+    while(!feof(f)){
+        fscanf(f,"%d %s %s %s %d %d %s",&vt.idVoiture,vt.marque,vt.nomVoiture,vt.couleur,&vt.nbplaces,&vt.prixJour,vt.EnLocation);
+        ajouterVoitureQueu(&n,&vt);
+    }
+    fclose(f);
+    return n;
+}
+void listTofileVoiture(nodeV* n){
+    fclose(fopen("voitures.txt", "w"));
+    while(n!=0){
+        ajouterVoitures(&(n->data));
+        n=n->next;
+    }
+}
+//functions voiture
+void ajouterVoitures(voiture* v){
+    FILE* f = fopen("voitures.txt","a+");
+    fprintf(f,"\n%-4d%-14s%-14s%-6s%-2d%-4d%-3s",v->idVoiture,v->marque,v->nomVoiture,v->couleur,v->nbplaces,v->prixJour,v->EnLocation);
+    fclose(f);
+}
+void afficherFile(char* nom){
+    FILE* f = fopen(nom,"r");
+    char c;
+    c=fgetc(f);
+    while(c != EOF){
+        printf("%c",c);
+        c=fgetc(f);
+    }
+
+    fclose(f);
+}
+void supprimerVoiture(int id){
+    //make linked list
+    nodeV* n = makeLinkedListVoiture();
+    //delete element from linked list
+    int b=0;
+    if(n==0)printf("le fichier voitures est vide !!\n");
+    else{
+        nodeV* pere=n;
+        nodeV* p=pere->next;
+        if(p==0){
+            if(pere->data.idVoiture==id){
+                b=1;
+                n=0;
+                fclose(fopen("voitures.txt", "w")); //delete file content
+            }
+        }else{
+            if(pere->data.idVoiture==id){
+                b=1;
+                n=n->next;
+                free(pere);
+            }
+            else{
+                while(p!=0){
+                    if(p->data.idVoiture==id){
+                        b=1;
+                        pere->next=p->next;
+                        free(p);
+                        break;
+                    }
+                    p=p->next;
+                    pere=pere->next;
+                }
+            }
+            if(b==1) listTofileVoiture(n);
+        }
+    }
+    if(b==0) printf("aucun voiture avec cette id !!\n");
+    suprimerListVoiture(n);
+}
+void modifierVoiture(int id,voiture* v){
+    //make linked list
+    nodeV* n = makeLinkedListVoiture();
+    //modifier element from linked list
+    int b=0;
+    if(n==0)printf("le fichier voitures est vide !!\n");
+    else{
+        nodeV* p = n;
+        while(p!=0){
+            if(p->data.idVoiture==id){
+                b=1;
+                //data update
+                p->data.idVoiture=v->idVoiture;
+                strcpy(p->data.marque,v->marque);
+                strcpy(p->data.nomVoiture,v->nomVoiture);
+                strcpy(p->data.couleur,v->couleur);
+                p->data.nbplaces=v->nbplaces;
+                p->data.prixJour=v->prixJour;
+                strcpy(p->data.EnLocation,v->EnLocation);
+                //file initialising
+                listTofileVoiture(n);
+                break;
+            }
+            p=p->next;
+        }
+    }
+    if(b==0) printf("aucun voiture avec cette id !!\n");
+    suprimerListVoiture(n);
+}
+void taperVoiture(voiture* v){
+    printf("Id : ");
+    scanf("%d",&(v->idVoiture));
+    printf("Marque : ");
+    scanf("%s",v->marque);
+    printf("Nom : ");
+    scanf("%s",v->nomVoiture);
+    printf("Couleur : ");
+    scanf("%s",v->couleur);
+    printf("Prix Jour : ");
+    scanf("%d",&(v->prixJour));
+    printf("Nombre de Places : ");
+    scanf("%d",&(v->nbplaces));
+    printf("En Location : ");
+    scanf("%s",v->EnLocation);
+}
+
+void voitureMenu(){
+    printf("\n					\xda\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xbf");
+	printf("\n					\xb3 Gestion des Voitures \xb3");
+	printf("\n					\xc0\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xd9");
+
+	printf("\n				\xc9\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xbb");
+	printf("\n				\xba                                              \xba");
+	printf("\n				\xba    Liste des voitures...................1    \xba");
+	printf("\n				\xba    Ajouter voiture......................2    \xba");
+	printf("\n				\xba    Modifier voiture.....................3    \xba");
+	printf("\n				\xba    Supprimer voiture....................4    \xba");
+	printf("\n				\xba    Retour...............................5    \xba");
+	printf("\n				\xba                                              \xba");
+	printf("\n				\xc8\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xbc");
+	printf("\n\n						Votre choix  :  ");
+	int choix;
+    scanf("%d",&choix);
+    switch(choix){
+        voiture v;
+        int id;
+        case 1:
+            system("cls");
+            afficherFile("voitures.txt");
+            printf("\n");
+            system("pause");
+            system("cls");
+            voitureMenu();
+            break;
+        case 2:
+            system("cls");
+            taperVoiture(&v);
+            ajouterVoitures(&v);
+            system("cls");
+            voitureMenu();
+            break;
+        case 3:
+            system("cls");
+            printf("Id : ");
+            scanf("%d",&id);
+            taperVoiture(&v);
+            modifierVoiture(id,&v);
+            system("cls");
+            voitureMenu();
+            break;
+        case 4:
+            system("cls");
+            printf("Id : ");
+            scanf("%d",&id);
+            supprimerVoiture(id);
+            printf("\n");
+            system("pause");
+            system("cls");
+            voitureMenu();
+            break;
+        case 5:
+            system("cls");
+            mainMenu();
+            break;
+    }
+}
+//linked list client
+void ajouterClientQueu(nodeC** pc,client* c){
+    nodeC* n=(nodeC*)malloc(sizeof(nodeC));
+    n->data.idClient=c->idClient;
+    n->data.cin=c->cin;
+    strcpy(n->data.telephone,c->telephone);
+    strcpy(n->data.adresse,c->adresse);
+    strcpy(n->data.nom,c->nom);
+    strcpy(n->data.prenom,c->prenom);
+
+    n->next=0;
+    if((*pc)==0){
+        (*pc)=n;
+    }else{
+        nodeC* p=(*pc);
+        while(p->next!=0) p=p->next;
+        p->next=n;
+    }
+}
+void suprimerListClient(nodeC* pc){
+    while(pc!=NULL){
+        nodeC* p = pc->next;
+        free(pc);
+        pc=p;
+    }
+}
+nodeC* makeLinkedListClient(){
+    nodeC* n=0;
+    FILE* f=fopen("clients.txt","r");
+    client c;
+    while(!feof(f)){
+        fscanf(f,"%d %s %s %d %s %s",&c.idClient,c.nom,c.prenom,&c.cin,c.adresse,c.telephone);
+        ajouterClientQueu(&n,&c);
+    }
+    fclose(f);
+    return n;
+}
+void listTofileClient(nodeC* n){
+    fclose(fopen("clients.txt", "w"));
+    while(n!=0){
+        ajouterClients(&(n->data));
+        n=n->next;
+    }
+}
+//functions client
+void taperClient(client* c){
+    printf("Id : ");
+    scanf("%d",&(c->idClient));
+    printf("Nom : ");
+    scanf("%s",c->nom);
+    printf("Prenom : ");
+    scanf("%s",c->prenom);
+    printf("Cin : ");
+    scanf("%d",&(c->cin));
+    printf("Adress : ");
+    scanf("%s",c->adresse);
+    printf("Telephone : ");
+    scanf("%s",c->telephone);
+}
+void ajouterClients(client* c){
+
+    FILE* f = fopen("clients.txt","a+");
+    fprintf(f,"\n%-4d%-19s%-19s%-6d%-14s%-10s",c->idClient,c->nom,c->prenom,c->cin,c->adresse,c->telephone);
+    fclose(f);
+}
+void modifierClient(int id,client* c){
+   //make linked list
+    nodeC* n = makeLinkedListClient();
+    //modifier element from linked list
+    int b=0;
+    if(n==0)printf("le fichier clients est vide !!\n");
+    else{
+        nodeC* p = n;
+        while(p!=0){
+            if(p->data.idClient==id){
+                b=1;
+                //data update
+                p->data.idClient=c->idClient;
+                p->data.cin=c->cin;
+                strcpy(p->data.telephone,c->telephone);
+                strcpy(p->data.nom,c->nom);
+                strcpy(p->data.prenom,c->prenom);
+                strcpy(p->data.adresse,c->adresse);
+                //file initialising
+                listTofileClient(n);
+                break;
+            }
+            p=p->next;
+        }
+    }
+    if(b==0) printf("aucun client avec cette id !!\n");
+    suprimerListClient(n);
+}
+void supprimerClient(int id){
+    //make linked list
+    nodeC* n = makeLinkedListClient();
+    //delete element from linked list
+    int b=0;
+    if(n==0)printf("le fichier client est vide !!\n");
+    else{
+        nodeC* pere=n;
+        nodeC* p=pere->next;
+        if(p==0){
+            if(pere->data.idClient==id){
+                b=1;
+                n=0;
+                fclose(fopen("clients.txt", "w")); //delete file content
+            }
+        }else{
+            if(pere->data.idClient==id){
+                b=1;
+                n=n->next;
+                free(pere);
+            }
+            else{
+                while(p!=0){
+                    if(p->data.idClient==id){
+                        b=1;
+                        pere->next=p->next;
+                        free(p);
+                        break;
+                    }
+                    p=p->next;
+                    pere=pere->next;
+                }
+            }
+            if(b==1) listTofileClient(n);
+        }
+    }
+    if(b==0) printf("aucun client avec cette id !!\n");
+    suprimerListClient(n);
+}
+void ClientMenu(){
+    printf("\n					\xda\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xbf");
+	printf("\n					\xb3 Gestion des Clients  \xb3");
+	printf("\n					\xc0\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xd9");
+
+	printf("\n				\xc9\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xbb");
+	printf("\n				\xba                                              \xba");
+	printf("\n				\xba    Liste des clients...................1     \xba");
+	printf("\n				\xba    Ajouter client......................2     \xba");
+	printf("\n				\xba    Modifier client.....................3     \xba");
+	printf("\n				\xba    Supprimer client....................4     \xba");
+	printf("\n				\xba    Retour..............................5     \xba");
+	printf("\n				\xba                                              \xba");
+	printf("\n				\xc8\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xbc");
+	printf("\n\n						Votre choix  :  ");
+	int choix;
+    scanf("%d",&choix);
+    switch(choix){
+        client c;
+        int id;
+        case 1:
+            system("cls");
+            afficherFile("clients.txt");
+            printf("\n");
+            system("pause");
+            system("cls");
+            ClientMenu();
+            break;
+        case 2:
+            system("cls");
+            taperClient(&c);
+            ajouterClients(&c);
+            system("cls");
+            ClientMenu();
+            break;
+        case 3:
+            system("cls");
+            printf("Id : ");
+            scanf("%d",&id);
+            taperClient(&c);
+            modifierClient(id,&c);
+            system("cls");
+            ClientMenu();
+            break;
+        case 4:
+            system("cls");
+            printf("Id : ");
+            scanf("%d",&id);
+            supprimerClient(id);
+            printf("\n");
+            system("pause");
+            system("cls");
+            ClientMenu();
+            break;
+        case 5:
+            system("cls");
+            mainMenu();
+            break;
+    }
+}
+//linked list location
+void ajouterContratQueu(nodeT** pt,contrat* t){
+    nodeT* n=(nodeT*)malloc(sizeof(nodeT));
+    n->data.numContrat=t->numContrat;
+    n->data.idClient=t->idClient;
+    n->data.idVoiture=t->idVoiture;
+    n->data.cout=t->cout;
+    dateCopy(&(n->data.debut),&(t->debut));
+    dateCopy(&(n->data.fin),&(t->fin));
+    n->next=0;
+    if((*pt)==0){
+        (*pt)=n;
+    }else{
+        nodeT* p=(*pt);
+        while(p->next!=0) p=p->next;
+        p->next=n;
+    }
+}
+void suprimerListContrat(nodeT* pt){
+    while(pt!=NULL){
+        nodeT* p = pt->next;
+        free(pt);
+        pt=p;
+    }
+}
+nodeT* makeLinkedListContrat(){
+    nodeT* n=0;
+    FILE* f=fopen("contrates.txt","r");
+    contrat t;
+    while(!feof(f)){
+        fscanf(f,"%d %d %d %d %d %d %d %d %d %d",&(t.numContrat),&(t.idClient),&(t.idVoiture),&(t.debut.jour),&(t.debut.mois),&(t.debut.anne),&(t.fin.jour),&(t.fin.mois),&(t.fin.anne),&(t.cout));
+		ajouterContratQueu(&n,&t);
+    }
+    fclose(f);
+    return n;
+}
+void listTofileContrat(nodeT* n){
+    fclose(fopen("contrates.txt", "w"));
+    while(n!=0){
+        ajouterContrat(&(n->data));
+        n=n->next;
+    }
+}
+
+//functions location
+void dateCopy(date* d1 ,date* d2){
+	d1->anne = d2->anne;
+	d1->mois = d2->mois;
+	d1->jour = d2->jour;
+}
+void ajouterContrat(contrat* t){
+
+    FILE* f = fopen("contrates.txt","a+");
+	fprintf(f,"\n%-4d%-4d%-4d%-3d%-3d%-5d%-3d%-3d%-5d%-4d",t->numContrat,t->idClient,t->idVoiture,t->debut.jour,t->debut.mois,t->debut.anne,t->fin.jour,t->fin.mois,t->fin.anne,t->cout);
+	fclose(f);
+}
+void visualiserContrat(int id){
+	//make linked list
+    nodeT* n = makeLinkedListContrat();
+    //modifier element from linked list
+    int b=0;
+    if(n==0)printf("le fichier contrat est vide !!\n");
+    else{
+        nodeT* p = n;
+        while(p!=0){
+            if(p->data.numContrat==id){
+                b=1;
+                //affichage
+                printf("%d %d %d %d/%d/%d %d/%d/%d %d\n",p->data.numContrat,p->data.idClient,p->data.idVoiture,p->data.debut.jour,p->data.debut.mois,p->data.debut.anne,p->data.fin.jour,p->data.fin.mois,p->data.fin.anne,p->data.cout);
+                break;
+            }
+            p=p->next;
+        }
+    }
+    if(b==0) printf("aucun contrat avec cette id !!\n");
+    suprimerListContrat(n);
+}
+int louerVoiture(char* nom,char* prenom,char* marque,char* nomv,char* couleur,int nbrp,int prixj,int numc,date d1,date d2){
+	nodeC* c=makeLinkedListClient();
+	nodeV* v=makeLinkedListVoiture();
+	nodeC* pc=c;
+	nodeV* pv=v;
+	int bc=0;
+	int bv=0;
+	while(pc!=NULL) {
+		if(strcmp(pc->data.nom,nom)==0 && strcmp(pc->data.prenom,prenom)==0){
+			bc=1;
+			break;
+		}
+		pc=pc->next;
+	}
+	while(pv!=NULL) {
+		if(strcmp(pv->data.nomVoiture,nomv)==0 && strcmp(pv->data.marque,marque)==0 && strcmp(pv->data.couleur,couleur)==0 && pv->data.nbplaces==nbrp && pv->data.prixJour == prixj){
+			if(pv->data.EnLocation == "oui") {
+				bv=1;
+			}else{
+				bv=2;
+				break;
+			}
+		}
+		pv=pv->next;
+	}
+	if(bc == 0){
+		printf("enregistrer vos propres informations a travers le menu « Gestion clients »\n");
+		return 0;
+	}else if(bv == 0){
+		printf("la voiture demandee n existe pas \n");
+		return 0;
+	}else{
+		if(bv == 1) {
+			printf("la voiture n est pas disponible\n");
+		}else{
+			//alocation
+			contrat t;
+			t.idClient=pc->data.idClient;
+			t.idVoiture=pv->data.idVoiture;
+			t.numContrat=numc;
+			dateCopy(&(t.debut),&d1);
+			dateCopy(&(t.fin),&d2);
+			t.cout=getDifference(d1,d2)*pv->data.prixJour;
+			ajouterContrat(&t);
+			printf("la location est fait avec  succes\n");
+			strcpy(pv->data.EnLocation,"oui");
+			listTofileVoiture(v);
+			suprimerListVoiture(v);
+			suprimerListClient(c);
+		}
+	}
+}
+void retournerVoiture(int id){
+	//make linked list
+    nodeT* n = makeLinkedListContrat();
+    //delete element from linked list
+    int b=0;
+    if(n==0)printf("le fichier contrat est vide !!\n");
+    else{
+        nodeT* pere=n;
+        nodeT* p=pere->next;
+        if(p==0){
+            if(pere->data.idVoiture==id){
+                b=1;
+                n=0;
+                fclose(fopen("contrates.txt", "w")); //delete file content
+            }
+        }else{
+            if(pere->data.idVoiture==id){
+                b=1;
+                n=n->next;
+                free(pere);
+            }
+            else{
+                while(p!=0){
+                    if(p->data.idVoiture==id){
+                        b=1;
+                        pere->next=p->next;
+                        free(p);
+                        break;
+                    }
+                    p=p->next;
+                    pere=pere->next;
+                }
+            }
+            if(b==1) listTofileContrat(n);
+        }
+    }
+    if(b==0) printf("aucun client avec cette id !!\n");
+    suprimerListContrat(n);
+	//modifier list voiture
+	if(b==1){
+		//make linked list voiture
+	   	nodeV* v = makeLinkedListVoiture();
+	    //fetch element
+	    int bv=0;
+	    if(v==0)printf("le fichier voitures est vide !!\n");
+	    nodeV* pv=n;
+	    while(pv!=0){
+	    	if(pv->data.idVoiture==id){
+	    		strcpy(pv->data.EnLocation,"non");
+	    		bv=1;
+	    		listTofileVoiture(v);
+	    		suprimerListVoiture(v);
+	    		break;
+			}
+			pv=pv->next;
+		}
+		if(bv==0) printf("aucun voiture avec cette id");
+	}
+}
+void suprimerContrat(int id){
+
+	//get id voiture
+	int idv;
+	nodeT* n1 = makeLinkedListContrat();
+	nodeT* p1 = n1;
+	while(p1!=0){
+		if(p1->data.numContrat==id){
+			idv=p1->data.idVoiture;
+			break;
+		}
+        p1=p1->next;
+	}
+	suprimerListContrat(n1);
+	//tester si voiture est non louee
+	//make linked list voiture
+	nodeV* v = makeLinkedListVoiture();
+	//fetch element
+	int bv=0;
+	if(v==0)printf("le fichier voitures est vide !!\n");
+	nodeV* pv=v;
+	while(pv!=0){
+	    if(pv->data.idVoiture==idv){
+	    	if(strcmp(pv->data.EnLocation,"non")==0){
+	    		bv=1;
+	    		break;
+			}
+		}
+		pv=pv->next;
+	}
+	suprimerListVoiture(v);
+	if(bv==0) printf("aucun voiture avec cette id ou deja en location !");
+	else{
+		//make linked list
+	    nodeT* n = makeLinkedListContrat();
+	    //delete element from linked list
+	    int b=0;
+	    if(n==0)printf("le fichier contrat est vide !!\n");
+	    else{
+	        nodeT* pere=n;
+	        nodeT* p=pere->next;
+	        if(p==0){
+	            if(pere->data.numContrat==id){
+	                b=1;
+	                n=0;
+	                fclose(fopen("contrates.txt", "w")); //delete file content
+	            }
+	        }else{
+	            if(pere->data.numContrat==id){
+	                b=1;
+	                n=n->next;
+	                free(pere);
+	            }
+	            else{
+	                while(p!=0){
+	                    if(p->data.numContrat==id){
+	                        b=1;
+	                        pere->next=p->next;
+	                        free(p);
+	                        break;
+	                    }
+	                    p=p->next;
+	                    pere=pere->next;
+	                }
+	            }
+	            if(b==1) listTofileContrat(n);
+	        }
+	    }
+	    suprimerListContrat(n);
+	}
+}
+
+void modifierContrat(int id,date newdate){
+	nodeT* t = makeLinkedListContrat();
+	nodeT* p = t;
+	int prix;
+	while(p!=0){
+		if(p->data.numContrat==id){
+			dateCopy(&(p->data.fin),&newdate);
+			nodeV* v = makeLinkedListVoiture();
+			nodeV* pv = v;
+			while(pv!=0){
+				if(p->data.idVoiture==pv->data.idVoiture){
+					prix = pv->data.prixJour;
+					break;
+				}
+				pv=pv->next;
+			}
+			p->data.cout=prix*getDifference(p->data.debut,p->data.fin);
+			suprimerListVoiture(v);
+			listTofileContrat(t);
+			break;
+		}
+		p=p->next;
+	}
+	suprimerListContrat(t);
+}
+void contratmenu(){
+	printf("\n					\xda\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xbf");
+	printf("\n					\xb3 Location dune Voiture  \xb3");
+	printf("\n					\xc0\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xd9");
+
+	printf("\n				\xc9\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xbb");
+	printf("\n				\xba                                              \xba");
+	printf("\n				\xba    Visualiser contrat..................1     \xba");
+	printf("\n				\xba    Louer voiture.......................2     \xba");
+	printf("\n				\xba    Retourner voiture...................3     \xba");
+	printf("\n				\xba    Modifier contrat....................4     \xba");
+	printf("\n				\xba    suprimer contrat....................5     \xba");
+	printf("\n				\xba    Retour..............................6     \xba");
+	printf("\n				\xba                                              \xba");
+	printf("\n				\xc8\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xbc");
+	printf("\n\n						Votre choix  :  ");
+	int choix;
+    scanf("%d",&choix);
+    //variables
+    int idcontrat,nbrp,prixj,numc,idv;
+    char nom[20],prenom[20],marque[15],couleur[7],nomv[15];
+    date d1,d2;
+    switch(choix){
+        case 1:
+        	system("cls");
+        	printf("id contrat : ");
+        	scanf("%d",&idcontrat);
+			visualiserContrat(idcontrat);
+			system("pause");
+			system("cls");
+			contratmenu();
+			break;
+        case 2:
+            system("cls");
+			printf("information sur le client :\n");
+			printf("nom :");
+			scanf("%s",nom);
+			printf("prenom :");
+			scanf("%s",prenom);
+			printf("information sur la voiture :\n");
+			printf("nom voiture:");
+			scanf("%s",nomv);
+			printf("marque :");
+			scanf("%s",marque);
+			printf("couleur :");
+			scanf("%s",couleur);
+			printf("nombre de place :");
+			scanf("%d",&nbrp);
+			printf("prix par jour :");
+			scanf("%d",&prixj);
+			printf("information sur contrat:\n");
+			printf("numero du contrat :");
+			scanf("%d",&numc);
+			printf("date de debut :\n");
+			printf("jour :");
+			scanf("%d",&d1.jour);
+			printf("mois :");
+			scanf("%d",&d1.mois);
+			printf("anne :");
+			scanf("%d",&d1.anne);
+			printf("date du fin :\n");
+			printf("jour :");
+			scanf("%d",&d2.jour);
+			printf("mois :");
+			scanf("%d",&d2.mois);
+			printf("anne :");
+			scanf("%d",&d2.anne);
+			louerVoiture(nom,prenom,marque,nomv,couleur,nbrp,prixj,numc,d1,d2);
+			system("pause");
+			system("cls");
+			contratmenu();
+			break;
+        case 3:
+            system("cls");
+            printf("id voiture : ");
+            scanf("%d",&idv);
+            retournerVoiture(idv);
+            system("pause");
+			system("cls");
+			contratmenu();
+			break;
+        case 4:
+            system("cls");
+            printf("id contrat : ");
+            scanf("%d",&idcontrat);
+            printf("date du fin :\n");
+			printf("jour :");
+			scanf("%d",&d2.jour);
+			printf("mois :");
+			scanf("%d",&d2.mois);
+			printf("anne :");
+			scanf("%d",&d2.anne);
+			modifierContrat(idcontrat,d2);
+			system("pause");
+			system("cls");
+			contratmenu();
+			break;
+        case 5:
+            system("cls");
+            printf("id contrat : ");
+            scanf("%d",&idcontrat);
+            suprimerContrat(idcontrat);
+            system("pause");
+			system("cls");
+			contratmenu();
+			break;
+		case 6:
+		    system("cls");
+		    mainMenu();
+			break;
+    }
+}
+void mainMenu(){
+    printf("\n					    \xda\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xbf");
+	printf("\n					    \xb3 Menu Principale \xb3");
+	printf("\n					    \xc0\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xc4\xd9");
+
+	printf("\n				\xc9\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xbb");
+	printf("\n             		        \xba                                              \xba");
+	printf("\n				\xba    Location..............................1   \xba");
+	printf("\n				\xba    Gestion voitures......................2   \xba");
+	printf("\n				\xba    Gestion clients.......................3   \xba");		
+	printf("\n				\xba    Quitter...............................4   \xba");
+	printf("\n				\xba                                              \xba");
+	printf("\n				\xc8\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xbc");
+	printf("\n\n                                         	Votre choix  :  ");
+	int choix;
+    scanf("%d",&choix);
+    switch(choix){
+        case 1:
+            system("cls");
+            contratmenu();
+            break;
+        case 2:
+            system("cls");
+            voitureMenu();
+            break;
+        case 3:
+            system("cls");
+            ClientMenu();
+            break;
+        case 4:
+            break;
+    }
+}
+// Driver code
+int main()
+{
+    fclose(fopen("voitures.txt","a+"));
+    fclose(fopen("clients.txt","a+"));
+    fclose(fopen("contrates.txt","a+"));
+	mainMenu();
+    return 0;
+}
